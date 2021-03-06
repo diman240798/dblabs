@@ -6,28 +6,28 @@ import javax.persistence.Id;
 @Entity
 public class RegionalService {
     @Id
-    private int id;
+    private long id;
 
     private String name;
     private long duration;
-    private String emploeePosition;
+    private boolean rejected;
     private String type;
 
     public RegionalService() {}
 
-    public RegionalService(int id, String name, long duration, String emploeePosition, String type) {
+    public RegionalService(long id, String name, long duration, boolean rejected, String type) {
         this.id = id;
         this.name = name;
         this.duration = duration;
-        this.emploeePosition = emploeePosition;
+        this.rejected = rejected;
         this.type = type;
     }
 
-    public int getId() {
+    public long getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(long id) {
         this.id = id;
     }
 
@@ -47,12 +47,12 @@ public class RegionalService {
         this.duration = duration;
     }
 
-    public String getEmploeePosition() {
-        return emploeePosition;
+    public boolean isRejected() {
+        return rejected;
     }
 
-    public void setEmploeePosition(String emploeePosition) {
-        this.emploeePosition = emploeePosition;
+    public void setRejected(boolean rejected) {
+        this.rejected = rejected;
     }
 
     public String getType() {

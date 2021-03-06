@@ -2,29 +2,30 @@ package ru.sfedu.dblabs.model;
 
 import javax.persistence.Entity;
 import javax.persistence.Id;
+import java.util.Date;
 
 @Entity
 public class City {
     @Id
-    private int id;
+    private long id;
 
     private String name;
-    private long foundDate;
+    private Date foundDate;
 
     public City() {
     }
 
-    public City(int id, String name, long foundDate) {
+    public City(long id, String name, Date foundDate) {
         this.id = id;
         this.name = name;
         this.foundDate = foundDate;
     }
 
-    public int getId() {
+    public long getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(long id) {
         this.id = id;
     }
 
@@ -36,11 +37,11 @@ public class City {
         this.name = name;
     }
 
-    public long getFoundDate() {
+    public Date getFoundDate() {
         return foundDate;
     }
 
-    public void setFoundDate(long foundDate) {
+    public void setFoundDate(Date foundDate) {
         this.foundDate = foundDate;
     }
 }

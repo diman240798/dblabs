@@ -2,6 +2,7 @@ package ru.sfedu.dblabs.model;
 
 import javax.persistence.Entity;
 import javax.persistence.Id;
+import java.util.Date;
 
 @Entity
 public class Client {
@@ -10,16 +11,15 @@ public class Client {
 
     private int age;
     private long cityId;
-    private long birthDate;
+    private Date birthDate;
     private String passportNumber;
     private String passportSereis;
     private String name;
     private boolean hasConvictions;
 
-    public Client() {
-    }
+    public Client() {}
 
-    public Client(long id, int age, long cityId, long birthDate, String passportNumber, String passportSereis, String name, boolean hasConvictions) {
+    public Client(long id, int age, long cityId, Date birthDate, String passportNumber, String passportSereis, String name, boolean hasConvictions) {
         this.id = id;
         this.age = age;
         this.cityId = cityId;
@@ -54,11 +54,11 @@ public class Client {
         this.cityId = cityId;
     }
 
-    public long getBirthDate() {
+    public Date getBirthDate() {
         return birthDate;
     }
 
-    public void setBirthDate(long birthDate) {
+    public void setBirthDate(Date birthDate) {
         this.birthDate = birthDate;
     }
 
@@ -100,7 +100,7 @@ public class Client {
                 "id=" + id +
                 ", age=" + age +
                 ", cityId=" + cityId +
-                ", birthDate=" + birthDate +
+                ", birthDate=" + birthDate.toString() +
                 ", passportNumber='" + passportNumber + '\'' +
                 ", passportSereis='" + passportSereis + '\'' +
                 ", name='" + name + '\'' +

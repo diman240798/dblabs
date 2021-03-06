@@ -9,7 +9,10 @@ import org.springframework.context.ConfigurableApplicationContext;
 import ru.sfedu.dblabs.csvModel.CsvCity;
 import ru.sfedu.dblabs.model.*;
 import ru.sfedu.dblabs.repo.*;
+import ru.sfedu.dblabs.sql.Requests;
+import ru.sfedu.dblabs.sql.SqlRunner;
 
+import javax.persistence.EntityManager;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
@@ -24,8 +27,97 @@ public class DblabsApplication {
 
     public static void main(String[] args) throws IOException {
         ConfigurableApplicationContext context = SpringApplication.run(DblabsApplication.class, args);
+//        fillDb(context);
 
-        fillDb(context);
+//        makeOldTimings(context);
+//        makeNewTimings(context);
+        countAverage();
+
+    }
+
+    private static void makeOldTimings(ConfigurableApplicationContext app) throws IOException {
+        File timings = new File("oldTimings");
+        timings.mkdir();
+
+        List<File> files = new ArrayList<>();
+        for (int i = 0; i < 10; i++) {
+            files.add(new File(timings, "OLD_" + i + ".txt"));
+        }
+
+        List<String> requests = Arrays.asList(
+                Requests.REQUEST_1, Requests.REQUEST_2,
+                Requests.REQUEST_3, Requests.REQUEST_4,
+                Requests.REQUEST_5, Requests.REQUEST_6,
+                Requests.REQUEST_7, Requests.REQUEST_8,
+                Requests.REQUEST_9, Requests.REQUEST_10
+        );
+        makeTimings(app, files, requests);
+    }
+
+    private static void makeNewTimings(ConfigurableApplicationContext app) throws IOException {
+        File timings = new File("newTimings");
+        timings.mkdir();
+
+        List<File> files = new ArrayList<>();
+        for (int i = 0; i < 10; i++) {
+            files.add(new File(timings, "NEW_" + i + ".txt"));
+        }
+
+        List<String> requests = Arrays.asList(
+                Requests.REQUEST_1, Requests.REQUEST_2,
+                Requests.REQUEST_3, Requests.REQUEST_4,
+                Requests.REQUEST_5, Requests.REQUEST_6,
+                Requests.REQUEST_7, Requests.REQUEST_8,
+                Requests.REQUEST_9, Requests.REQUEST_10
+        );
+        makeTimings(app, files, requests);
+    }
+
+    public static void makeTimings(ConfigurableApplicationContext app, List<File> files, List<String> requests) throws IOException {
+        EntityManager entityManager = app.getBean(EntityManager.class);
+        SqlRunner sqlRunner = new SqlRunner(entityManager);
+
+        files.forEach(it -> {
+            try {
+                it.createNewFile();
+            } catch (Exception ex) {
+                throw new RuntimeException("Cant create file");
+            }
+        });
+
+        for (int i = 0; i < 20; i++) {
+            for (int j = 0; j < requests.size(); j++) {
+                sqlRunner.run(requests.get(j), files.get(j));
+            }
+        }
+    }
+
+    private static void countAverage() throws IOException {
+        File OLD_TIMINGS = new File("oldTimings");
+        OLD_TIMINGS.mkdir();
+
+        List<File> oldFiles = new ArrayList<>();
+        for (int i = 0; i < 10; i++) {
+            oldFiles.add(new File(OLD_TIMINGS, "OLD_" + i + ".txt"));
+        }
+
+        File NEW_TIMINGS = new File("newTimings");
+        NEW_TIMINGS.mkdir();
+
+        List<File> newFiles = new ArrayList<>();
+        for (int i = 0; i < 10; i++) {
+            newFiles.add(new File(NEW_TIMINGS, "NEW_" + i + ".txt"));
+        }
+
+        for (int i = 0; i < 10; i++) {
+            File oldFile = oldFiles.get(i);
+            File newFile = newFiles.get(i);
+
+            double oldSum = Arrays.stream(Files.readString(oldFile.toPath()).split(",")).filter(it -> !it.isBlank()).mapToInt(Integer::parseInt).summaryStatistics().getAverage();
+            double newSum = Arrays.stream(Files.readString(newFile.toPath()).split(",")).filter(it -> !it.isBlank()).mapToInt(Integer::parseInt).summaryStatistics().getAverage();
+
+            System.out.println("Request " + (i + 1) + ": old: " + oldSum + "; new: " + newSum + ", diff: " + (oldSum - newSum) / oldSum * 100);
+        }
 
     }
 
@@ -34,10 +126,10 @@ public class DblabsApplication {
         EmploeeRepo emploeeRepo = context.getBean(EmploeeRepo.class);
         ServiceTypeRepo serviceTypeRepo = context.getBean(ServiceTypeRepo.class);
         ClientRepo clientRepo = context.getBean(ClientRepo.class);
-		FederalServiceRepo federalServiceRepo = context.getBean(FederalServiceRepo.class);
-		MunicipalServiceRepo municipalServiceRepo = context.getBean(MunicipalServiceRepo.class);
-		RegionalServiceRepo regionalServiceRepo = context.getBean(RegionalServiceRepo.class);
-		RequestsRepo requestsRepo = context.getBean(RequestsRepo.class);
+        FederalServiceRepo federalServiceRepo = context.getBean(FederalServiceRepo.class);
+        MunicipalServiceRepo municipalServiceRepo = context.getBean(MunicipalServiceRepo.class);
+        RegionalServiceRepo regionalServiceRepo = context.getBean(RegionalServiceRepo.class);
+        RequestsRepo requestsRepo = context.getBean(RequestsRepo.class);
 
 
         List<City> cities = fillCitiesAndGet(cityRepo);
@@ -65,7 +157,7 @@ public class DblabsApplication {
             for (int j = 0; j < lastnamesList.size(); j++) {
 
                 String lastname = lastnamesList.get(j);
-                String name = lastname + " " + firsfname;
+                String name = lastname + ((i >= 32) ? "а " : " ") + firsfname;
                 names.add(name);
             }
         }
@@ -75,21 +167,21 @@ public class DblabsApplication {
 
         List<Client> clients = fillClientsAndGet(names, cities, clientRepo);
 
-        List<FederalService> fedServ = fillServiceFederalAndGet(names, positions, federalServiceRepo);
+        File federalFile = new File(ClassLoader.getSystemResources("federal.txt").nextElement().getFile());
+        List<FederalService> fedServ = fillServiceFederalAndGet(Files.readAllLines(federalFile.toPath()), positions, federalServiceRepo);
+        File municipalFile = new File(ClassLoader.getSystemResources("municipal.txt").nextElement().getFile());
+        List<MunicipalService> munServ = fillServiceMunicipalAndGet(Files.readAllLines(municipalFile.toPath()), positions, municipalServiceRepo);
+        File regionalFile = new File(ClassLoader.getSystemResources("regional.txt").nextElement().getFile());
+        List<RegionalService> regServ = fillServiceRegionalAndGet(Files.readAllLines(regionalFile.toPath()), positions, regionalServiceRepo);
 
-
-        List<MunicipalService> munServ = new ArrayList<>();
-        List<RegionalService> regServ = new ArrayList<>();
-
-        List<Request> requests = fillRequestsAndGet(clients, fedServ, munServ, regServ, emploees, requestsRepo);
+        fillRequestsAndGet(clients, fedServ, munServ, regServ, emploees, requestsRepo);
     }
 
-    private static List<Request> fillRequestsAndGet(List<Client> clients, List<FederalService> federalServices, List<MunicipalService> munServ, List<RegionalService> rigionServ, List<Emploee> emploees, RequestsRepo requestsRepo) {
-        List<Request> result = new ArrayList<>();
+    private static void fillRequestsAndGet(List<Client> clients, List<FederalService> federalServices, List<MunicipalService> munServ, List<RegionalService> rigionServ, List<Emploee> emploees, RequestsRepo requestsRepo) {
 
         Random rnd = new Random();
 
-        for (int i = 0; i < 1000; i++) {
+        for (int i = 0; i < 90000; i++) {
             long id = getId();
             boolean isActive = rnd.nextBoolean();
             Client client = clients.get(rnd.nextInt(clients.size()));
@@ -104,8 +196,7 @@ public class DblabsApplication {
             long serviceId;
             String serviceType;
 
-//            int servType = rnd.nextInt(3);
-            int servType = 0;
+            int servType = rnd.nextInt(3);
             if (servType == 0) {
                 serviceId = federalServices.get(rnd.nextInt(federalServices.size())).getId();
                 serviceType = "федеральный";
@@ -117,14 +208,11 @@ public class DblabsApplication {
                 serviceType = "региональный";
             }
 
-            long dateStart = getRandDate();
+            Date dateStart = new Date(getRandDate());
 
             Request request = new Request(id, isActive, clientId, serviceId, serviceType, employeeId, dateStart);
-            result.add(request);
             requestsRepo.save(request);
         }
-
-        return result;
     }
 
     private static List<FederalService> fillServiceFederalAndGet(List<String> names, List<String> positions, FederalServiceRepo federalServiceRepo) {
@@ -132,16 +220,54 @@ public class DblabsApplication {
 
         Random rnd = new Random();
 
-        for (int i = 0; i < 1000; i++) {
+        for (int i = 0; i < 90000; i++) {
             long id = getId();
             String name = names.get(rnd.nextInt(names.size()));
-            long duration = 86400000 * rnd.nextInt(15);
-            String emploeePosition = positions.get(rnd.nextInt(positions.size()));
+            long duration = rnd.nextInt(15) + 1;
+            boolean rejected = rnd.nextBoolean();
             String type = "федеральный";
 
-            FederalService federalService = new FederalService(id, name, duration, emploeePosition, type);
+            FederalService federalService = new FederalService(id, name, duration, rejected, type);
             result.add(federalService);
             federalServiceRepo.save(federalService);
+        }
+        return result;
+    }
+
+    private static List<MunicipalService> fillServiceMunicipalAndGet(List<String> names, List<String> positions, MunicipalServiceRepo repo) {
+        List<MunicipalService> result = new ArrayList<>();
+
+        Random rnd = new Random();
+
+        for (int i = 0; i < 90000; i++) {
+            long id = getId();
+            String name = names.get(rnd.nextInt(names.size()));
+            long duration = rnd.nextInt(15) + 1;
+            boolean rejected = rnd.nextBoolean();
+            String type = "муниципальный";
+
+            MunicipalService service = new MunicipalService(id, name, duration, rejected, type);
+            result.add(service);
+            repo.save(service);
+        }
+        return result;
+    }
+
+    private static List<RegionalService> fillServiceRegionalAndGet(List<String> names, List<String> positions, RegionalServiceRepo repo) {
+        List<RegionalService> result = new ArrayList<>();
+
+        Random rnd = new Random();
+
+        for (int i = 0; i < 90000; i++) {
+            long id = getId();
+            String name = names.get(rnd.nextInt(names.size()));
+            long duration = rnd.nextInt(15) + 1;
+            boolean rejected = rnd.nextBoolean();
+            String type = "региональный";
+
+            RegionalService service = new RegionalService(id, name, duration, rejected, type);
+            result.add(service);
+            repo.save(service);
         }
         return result;
     }
@@ -150,20 +276,21 @@ public class DblabsApplication {
         List<Client> clients = new ArrayList<>();
 
         Random rnd = new Random();
+        for (int j = 0; j < 10; j++) {
+            for (int i = 0; i < cities.size(); i++) {
+                long id = getId();
+                int age = 20 + rnd.nextInt(60);
+                long cityId = cities.get(i).getId();
+                Date birthDate = new Date(getRandDate());
+                String passportNumber = String.valueOf(rnd.nextInt(8999) + 1000);
+                String passportSereis = String.valueOf(rnd.nextInt(899999) + 10000000);
+                String name = names.get(rnd.nextInt(names.size()));
+                boolean hasConvictions = rnd.nextBoolean();
 
-        for (int i = 0; i < cities.size(); i++) {
-            long id = getId();
-            int age = 20 + rnd.nextInt(60);
-            long cityId = cities.get(i).getId();
-            long birthDate = getRandDate();
-            String passportNumber = String.valueOf(rnd.nextInt(8999) + 1000);
-            String passportSereis = String.valueOf(rnd.nextInt(899999) + 100000);
-            String name = names.get(rnd.nextInt(names.size()));
-            boolean hasConvictions = rnd.nextBoolean();
-
-            Client client = new Client(id, age, cityId, birthDate, passportNumber, passportSereis, name, hasConvictions);
-            clients.add(client);
-            clientRepo.save(client);
+                Client client = new Client(id, age, cityId, birthDate, passportNumber, passportSereis, name, hasConvictions);
+                clients.add(client);
+                clientRepo.save(client);
+            }
         }
 
         return clients;
@@ -173,7 +300,7 @@ public class DblabsApplication {
         List<Emploee> result = new ArrayList<>();
 
         Random random = new Random();
-        for (int i = 0; i < cities.size(); i++) {
+        for (int i = 0; i < cities.size() / 2; i++) {
             long id = getId();
             String name = names.get(random.nextInt(names.size()));
             int age = random.nextInt(60) + 20;
@@ -213,7 +340,7 @@ public class DblabsApplication {
             List<CsvCity> cities = cb.parse();
             System.out.println(cities);
             cities.stream().forEach(it -> {
-                City city = new City(Integer.parseInt(it.getCity_id()), it.getName(), getRandDate());
+                City city = new City(Long.parseLong(it.getCity_id()), it.getName(), new Date(getRandDate()));
                 result.add(city);
                 cityRepo.save(city);
             });

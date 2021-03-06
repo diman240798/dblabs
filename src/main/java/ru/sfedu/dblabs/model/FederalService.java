@@ -10,16 +10,16 @@ public class FederalService {
 
     private String name;
     private long duration;
-    private String emploeePosition;
+    private boolean rejected;
     private String type;
 
     public FederalService() {}
 
-    public FederalService(long id, String name, long duration, String emploeePosition, String type) {
+    public FederalService(long id, String name, long duration, boolean rejected, String type) {
         this.id = id;
         this.name = name;
         this.duration = duration;
-        this.emploeePosition = emploeePosition;
+        this.rejected = rejected;
         this.type = type;
     }
 
@@ -47,12 +47,12 @@ public class FederalService {
         this.duration = duration;
     }
 
-    public String getEmploeePosition() {
-        return emploeePosition;
+    public boolean isRejected() {
+        return rejected;
     }
 
-    public void setEmploeePosition(String emploeePosition) {
-        this.emploeePosition = emploeePosition;
+    public void setRejected(boolean rejected) {
+        this.rejected = rejected;
     }
 
     public String getType() {
